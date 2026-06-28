@@ -1,0 +1,26 @@
+# MediCore HMS — robots.txt
+# VULN-830: Disallow entries reveal internal application structure to attackers.
+# Security through obscurity is not a control, but listing sensitive paths in
+# robots.txt actively advertises them to anyone who reads this file (including
+# automated scanners). The paths below expose admin interfaces, debug endpoints,
+# backup locations, and internal API routes.
+
+User-agent: *
+Disallow: /api/admin/
+Disallow: /api/debug/
+Disallow: /api/export/
+Disallow: /backup/
+Disallow: /internal/
+Disallow: /.env
+Disallow: /api/eval
+Disallow: /graphql/debug
+Disallow: /api/v1/staff/
+Disallow: /api/v1/billing/internal/
+Disallow: /media/uploads/
+Disallow: /static/admin/
+Disallow: /django-admin/
+
+# Allow search engines to index public pages
+Allow: /
+Allow: /about/
+Allow: /contact/

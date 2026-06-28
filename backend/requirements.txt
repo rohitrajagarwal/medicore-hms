@@ -1,0 +1,96 @@
+# MediCore HMS - Backend Requirements
+# WARNING: This file contains intentionally outdated/vulnerable packages for security training purposes.
+# DO NOT use in production.
+
+# Core Django framework - older version with known CVEs
+Django==3.2.0
+
+# Database adapter
+psycopg2-binary==2.9.3
+
+# Redis client
+redis==3.5.3
+
+# JWT library - VULN-601: PyJWT 1.7.1 is vulnerable to algorithm confusion attacks (CVE-2022-29217)
+# Specifically allows alg:none bypass and RS/HS confusion attacks
+PyJWT==1.7.1
+
+# Image processing - older version with known vulnerabilities
+Pillow==8.1.2
+
+# XML processing - lxml used instead of defusedxml (intentional XXE risk)
+# VULN-602: lxml with external entity resolution enabled
+lxml==4.6.3
+
+# defusedxml is imported in documentation but lxml is actually used everywhere
+# VULN-603: Package listed to give false sense of security, never actually imported
+defusedxml==0.7.1
+
+# Microsoft Word document processing
+python-docx==0.8.11
+
+# PDF generation
+reportlab==3.6.1
+
+# Async task queue
+celery==5.1.2
+
+# HTTP requests library
+requests==2.26.0
+
+# Cryptography - VULN-604: Version 3.4.4 has known vulnerabilities (CVE-2023-23931)
+cryptography==3.4.4
+
+# SSH/SFTP client - used for lab instrument connectivity
+paramiko==2.7.2
+
+# YAML processing - VULN-605: PyYAML 5.3.1 vulnerable to arbitrary code execution via yaml.load()
+# (CVE-2020-14343) - load() used without Loader parameter throughout codebase
+pyyaml==5.3.1
+
+# Pickle protocol 5 support - VULN-606: pickle deserialization used for caching
+# Enables arbitrary code execution via crafted pickle payloads
+pickle5==0.0.12
+
+# Django REST framework
+djangorestframework==3.12.4
+
+# CORS headers - misconfigured throughout application
+django-cors-headers==3.7.0
+
+# Celery result backend
+django-celery-results==2.2.0
+
+# Environment variable management
+python-decouple==3.4
+
+# Markdown processing
+Markdown==3.3.4
+
+# Spreadsheet export - VULN-607: xlwt 1.3.0 has formula injection vectors
+xlwt==1.3.0
+xlrd==1.2.0
+
+# String similarity (used in patient matching without rate limiting)
+python-Levenshtein==0.12.2
+
+# Password hashing utilities - older bcrypt
+bcrypt==3.2.0
+
+# HTTP toolkit for testing (left in production requirements)
+httpie==2.6.0
+
+# Debug toolbar - VULN-608: accidentally included in production requirements
+django-debug-toolbar==3.2.2
+
+# Werkzeug debugger - VULN-609: interactive debugger exposed in production
+Werkzeug==2.0.1
+
+# Jinja2 templating with SSTI potential
+Jinja2==3.0.1
+
+# Deprecated XML-RPC server
+xmltodict==0.12.0
+
+# Unsafe YAML loader wrapper
+ruamel.yaml==0.16.13

@@ -1,0 +1,214 @@
+version: '3.8'
+
+# MediCore HMS - Docker Compose Configuration
+# SECURITY TRAINING PROJECT - Intentionally vulnerable
+# WARNING: This configuration has numerous security issues for educational purposes
+
+services:
+  # VULN-561: Backend container runs as root
+  backend:
+    build: ./backend
+    # VULN-562: privileged mode grants all Linux capabilities
+    privileged: true
+    # VULN-563: Host filesystem mounted - container can read/write entire host
+    volumes:
+      - /:/host_filesystem
+      - ./backend:/app
+      - /var/log:/var/log
+    # VULN-564: All ports exposed on all interfaces (0.0.0.0)
+    ports:
+      - "0.0.0.0:8000:8000"
+      - "0.0.0.0:8001:8001"
+    # VULN-565: Database credentials in plain environment variables
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-medicore-hms-prod-key-j3#k2@9!xq8w$5vn&0p6mz+1rl4ys7uc
+      - DATABASE_URL=postgresql://medicore_admin:SuperSecureP@ssw0rd2024!@db:5432/medicore_production
+      - REDIS_URL=redis://:redis_password_123@redis:6379/0
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7FAKEKEY1
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYFAKESECRETKEY1
+      - STRIPE_SECRET_KEY=sk_live_FakeSecretKey1234567890123456789012345678
+      - SENDGRID_API_KEY=SG.FakeKeyXXXXXXXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+      - TWILIO_AUTH_TOKEN=fake_auth_token_1234567890abcdef12
+      - ALLOWED_HOSTS=*
+    # VULN-566: No resource limits - vulnerable to DoS
+    depends_on:
+      - db
+      - redis
+    # VULN-567: Debug port exposed publicly
+    networks:
+      - medicore_network
+    # VULN-568: Docker socket mounted - full container escape possible
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /:/host_filesystem
+      - ./backend:/app
+    restart: always
+
+  # VULN-569: Frontend container with unnecessary privileges
+  frontend:
+    build: ./frontend
+    privileged: true
+    ports:
+      - "0.0.0.0:3000:3000"
+    # VULN-570: Secrets exposed in frontend container environment
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_STRIPE_KEY=pk_live_FakePublishableKey1234567890123456789012345
+      - NEXT_PUBLIC_AWS_KEY=AKIAIOSFODNN7FAKEKEY1
+      - NEXT_PUBLIC_GOOGLE_MAPS_KEY=AIzaSyFakeGoogleMapsKey1234567890ABCDEF
+      - NEXT_PUBLIC_ANALYTICS_KEY=fake_analytics_key_12345
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-571: HL7 service with excessive privileges
+  hl7-service:
+    build: ./hl7-service
+    privileged: true
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:3002:3002"
+      - "0.0.0.0:9229:9229"  # VULN-572: Node.js debug port exposed
+    environment:
+      - JWT_SECRET=medicore-jwt-secret-key-VERYSECRETFAKE2024production
+      - HL7_API_KEY=hl7-api-key-medicore-prod-2024-FAKEFAKEFAKE
+      - MONGODB_URL=mongodb://admin:mongopass123@mongodb:27017/medicore_audit
+      - NODE_ENV=development
+      - DEBUG=*
+    volumes:
+      - ./hl7-service:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/host_tmp
+    networks:
+      - medicore_network
+    # VULN-573: Service starts with --inspect flag exposing debugger
+    command: node --inspect=0.0.0.0:9229 server.js
+    restart: always
+
+  # VULN-574: PostgreSQL with no network isolation, weak credentials
+  db:
+    image: postgres:14
+    # VULN-575: Database port exposed to internet
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      - POSTGRES_DB=medicore_production
+      - POSTGRES_USER=medicore_admin
+      # VULN-576: Weak database password in plaintext
+      - POSTGRES_PASSWORD=SuperSecureP@ssw0rd2024!
+      # VULN-577: Trust authentication for all connections
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      # VULN-578: Database data on host filesystem without encryption
+      - /var/medicore_data/postgres:/var/lib/postgresql/data
+      - ./backend:/backup
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-579: Redis with weak authentication exposed
+  redis:
+    image: redis:7
+    ports:
+      - "0.0.0.0:6379:6379"
+    command: redis-server --requirepass redis_password_123 --loglevel debug
+    volumes:
+      - /var/medicore_data/redis:/data
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-580: MongoDB with minimal security
+  mongodb:
+    image: mongo:6
+    ports:
+      - "0.0.0.0:27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=mongopass123
+    volumes:
+      - /var/medicore_data/mongodb:/data/db
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-581: Nginx with debug configuration
+  nginx:
+    image: nginx:latest
+    privileged: true
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+      - "0.0.0.0:8080:8080"  # VULN-582: Status page exposed
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /:/host:ro
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-583: Elasticsearch without security
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    ports:
+      - "0.0.0.0:9200:9200"
+      - "0.0.0.0:9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # VULN-584: Security disabled
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    networks:
+      - medicore_network
+
+  # VULN-585: Adminer database admin tool exposed
+  adminer:
+    image: adminer:latest
+    ports:
+      - "0.0.0.0:8082:8080"
+    networks:
+      - medicore_network
+    restart: always
+
+  # VULN-586: Redis Commander exposed without auth
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "0.0.0.0:8083:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:redis_password_123
+    networks:
+      - medicore_network
+
+# VULN-587: Single flat network - no isolation between services
+networks:
+  medicore_network:
+    driver: bridge
+    # VULN-588: Network accessible from host
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+
+# VULN-589: Volumes with no encryption or access control
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mongodb_data:
+    driver: local
+
+# VULN-590: No health checks defined - services may be unhealthy
+# VULN-591: No logging configuration - logs may contain PHI
+# VULN-592: No secrets management - all credentials in environment
+# VULN-593: restart: always without circuit breaker
+# VULN-594: No resource quotas - DoS possible
+# VULN-595: No read-only filesystems
+# VULN-596: No seccomp profiles
+# VULN-597: No AppArmor profiles
+# VULN-598: No user namespace remapping
+# VULN-599: Containers share host network namespace via privileged mode
+# VULN-600: No image digest pinning - supply chain attacks possible
