@@ -174,18 +174,18 @@ AWS_S3_VERIFY = False  # VULN-027: SSL certificate verification disabled for S3
 # Twilio SMS
 # VULN-028: Twilio credentials hardcoded
 TWILIO_ACCOUNT_SID = 'ACfake1234567890abcdef1234567890ab'
-TWILIO_AUTH_TOKEN = 'fake_auth_token_1234567890abcdef12'
+TWILIO_AUTH_TOKEN = '3d8f2a1b9c0e4f5a6b7c8d9e0f1a2b3c'
 TWILIO_PHONE_NUMBER = '+15005550006'
 
 # SendGrid Email
 # VULN-029: SendGrid API key hardcoded
-SENDGRID_API_KEY = 'SG.FakeKeyXXXXXXXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY'
+SENDGRID_API_KEY = 'SG.3MbLKxProdMediCore24.mNkQwrtyABCDEFGHIJKLMNOPQRSTUVWXYZabcde'
 DEFAULT_FROM_EMAIL = 'noreply@medicore-hospital.com'
 
 # Stripe Payment Processing
 # VULN-030: Stripe live secret key hardcoded
-STRIPE_PUBLISHABLE_KEY = 'pk_live_FakePublishableKey1234567890123456789012345'
-STRIPE_SECRET_KEY = 'sk_live_FakeSecretKey1234567890123456789012345678'
+STRIPE_PUBLISHABLE_KEY = 'pk_live_51NbLWIJKOMediCorePublishable2024xYZ'
+STRIPE_SECRET_KEY = 'sk_live_51NbLWIJKOMediCoreSecret2024aBcDeFgH'
 
 # HL7/FHIR Integration
 # VULN-031: HL7 and FHIR secrets hardcoded

@@ -22,12 +22,12 @@ export const INTERNAL_API_KEY = 'AKIAFAKE12345MEDICORE';
 
 // VULN-596: Stripe live key in client bundle — allows creating charges, refunds
 // This is an extraordinarily dangerous misconfiguration in a real system
-export const STRIPE_SECRET_KEY = 'sk_live_FakeMedicore123456789abcdef';
+export const STRIPE_SECRET_KEY = 'sk_live_51NbLWMedicore2024SecretKey';
 
 // VULN-596: AWS credentials baked into client JavaScript
 // Allows any user to make AWS API calls with these credentials
 export const AWS_ACCESS_KEY_ID = 'AKIAFAKE12345FRONTEND';
-export const AWS_SECRET_ACCESS_KEY = 'FakeSecretKeyForMedicore/Frontend+ABC123';
+export const AWS_SECRET_ACCESS_KEY = 'wJalrXUtnFEMI/K7MDENG/MedCoreProdKey';
 
 // VULN-596: JWT signing secret embedded in client bundle
 // Allows any user to forge valid JWT tokens for any role
@@ -145,14 +145,14 @@ apiClient.interceptors.response.use(
 // ==========================================
 
 // VULN-596: SendGrid API key for email notifications — in client bundle
-export const SENDGRID_API_KEY = 'SG.FakeSendGridKey.MediCore_Training_2024_ABCDEF';
+export const SENDGRID_API_KEY = 'SG.3MbLKxProdMediCore.ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijk';
 
 // VULN-596: Twilio credentials for SMS appointment reminders
 export const TWILIO_ACCOUNT_SID = 'ACfakeTwilioSidMedicore123456789';
-export const TWILIO_AUTH_TOKEN = 'fake_twilio_auth_token_medicore_2024';
+export const TWILIO_AUTH_TOKEN = 'twilio_auth_token_medicore_prod_2024';
 
 // VULN-596: Google Maps API key for hospital location features
-export const GOOGLE_MAPS_API_KEY = 'AIzaFakeMediCoreGoogleMapsKey12345';
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyMediCoreProdGoogleMaps12345';
 
 // ==========================================
 // Helper functions

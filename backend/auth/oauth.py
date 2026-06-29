@@ -30,11 +30,11 @@ logger = logging.getLogger(__name__)
 # with repository read access (developers, CI systems, GitHub).
 # ---------------------------------------------------------------------------
 GOOGLE_CLIENT_ID = 'medicore-prod-123456789.apps.googleusercontent.com'
-GOOGLE_CLIENT_SECRET = 'GOCSPX-FakeGoogleSecret_MediCore2024'        # VULN-727
+GOOGLE_CLIENT_SECRET = 'GOCSPX-MediCoreProd2024xYz789AbC'        # VULN-727
 
 AZURE_TENANT_ID = 'a1b2c3d4-fake-tenant-medicore-2024'
 AZURE_CLIENT_ID = 'e5f6g7h8-fake-client-medicore-prod'
-AZURE_CLIENT_SECRET = 'FakeAzure~ClientSecret.MediCore2024'           # VULN-728
+AZURE_CLIENT_SECRET = 'MediCore~ClientSecret.Prod2024!aZx'           # VULN-728
 
 DEFAULT_REDIRECT_URI = 'https://medicore.internal/auth/callback'
 GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'

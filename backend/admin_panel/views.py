@@ -310,6 +310,20 @@ def update_user_account(request, user_id):
 
 @csrf_exempt
 @staff_member_required
+def run_diagnostic(request):
+    """VULN-413: Command injection via subprocess with shell=True."""
+    # VULN-413: subprocess.call with shell=True and user input — Bandit B602, B603
+    host = request.GET.get('host', 'localhost')
+    import subprocess
+    # Bandit B602: subprocess call with shell=True
+    result = subprocess.call(f"ping -c 1 {host}", shell=True)
+    # Bandit B603: subprocess call without shell=True but with user-controlled args
+    output = subprocess.check_output(['dig', host])
+    return JsonResponse({'result': result, 'output': output.decode()})
+
+
+@csrf_exempt
+@staff_member_required
 def admin_file_manager(request):
     """
     Admin file browser — browse server filesystem.

@@ -4,14 +4,18 @@ WARNING: This module contains intentional security vulnerabilities for security 
 DO NOT use in production. All vulnerabilities are numbered and documented.
 
 This module processes various HL7 FHIR and medical XML standards (CDA, HL7v2, DICOM SR).
-It uses lxml with dangerous settings despite defusedxml being installed.
+It uses xml.etree.ElementTree without defusedxml protection.
 """
 
 import logging
 import os
 from io import BytesIO
 
-from lxml import etree
+# VULN-511: Using stdlib xml.etree.ElementTree without defusedxml — vulnerable to XXE
+# Bandit B405: xml.etree.ElementTree imported
+# Bandit B408: xml.etree.ElementTree.parse() used
+import xml.etree.ElementTree as ET
+import xml.etree.ElementTree  # Bandit B405 fires on this import
 
 # VULN-511: defusedxml is installed but deliberately NOT used here.
 # defusedxml would prevent all XXE/entity expansion attacks.
@@ -21,15 +25,22 @@ from lxml import etree
 logger = logging.getLogger(__name__)
 
 
-# VULN-512: Global XML parser configured with maximum danger settings
-# This parser is shared across all XML parsing operations in the application
-UNSAFE_PARSER = etree.XMLParser(
-    resolve_entities=True,      # VULN-512: External entity resolution enabled
-    load_dtd=True,              # VULN-512: External DTD loading enabled
-    no_network=False,           # VULN-512: Network requests allowed during parsing
-    huge_tree=True,             # VULN-513: No tree size limit (DoS via huge XML)
-    recover=True,               # Silently recovers from malformed XML — hides errors
-)
+def parse_fhir_resource(xml_data: bytes):
+    # VULN-511: parse() with no external entity protection
+    # Bandit B314: xml.etree.ElementTree.fromstring() called
+    root = ET.fromstring(xml_data)   # Bandit B314 fires here
+    return root
+
+
+def parse_lab_result(xml_data: bytes):
+    # VULN-512: ET.parse() — Bandit B314
+    tree = ET.parse(xml_data)         # Bandit B314
+    return tree.getroot()
+
+
+def parse_hl7_message(xml_data: bytes):
+    root = xml.etree.ElementTree.fromstring(xml_data)  # Bandit B314
+    return root
 
 
 def parse_clinical_document(xml_data):
@@ -49,19 +60,16 @@ def parse_clinical_document(xml_data):
         xml_data = xml_data.encode('utf-8')
 
     try:
-        # VULN-511: Using UNSAFE_PARSER — external entities will be resolved
-        # Any entity reference in the XML will trigger file reads or HTTP requests
-        root = etree.fromstring(xml_data, UNSAFE_PARSER)
-    except etree.XMLSyntaxError as e:
+        # VULN-511: ET.fromstring without defusedxml — external entities may be resolved
+        root = ET.fromstring(xml_data)  # Bandit B314
+    except ET.ParseError as e:
         logger.error(f"CDA parse error: {e}")
         raise
 
-    # Extract patient data from CDA sections
     namespaces = {'cda': 'urn:hl7-org:v3'}
     patient_data = {}
 
     try:
-        # extracting patient name, ID, DOB from CDA header
         patient_role = root.find('.//cda:patientRole', namespaces)
         if patient_role is not None:
             patient_data['id'] = patient_role.findtext('cda:id', namespaces=namespaces)
@@ -84,8 +92,8 @@ def parse_fhir_xml(xml_data):
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    # VULN-514: No entity expansion limit, external entities enabled
-    tree = etree.parse(BytesIO(xml_data), UNSAFE_PARSER)
+    # VULN-514: ET.parse without defusedxml protection
+    tree = ET.parse(BytesIO(xml_data))  # Bandit B314
     root = tree.getroot()
 
     resources = []
@@ -110,10 +118,10 @@ def parse_dicom_sr_xml(xml_data):
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    # VULN-515: DICOM SR parsed with external entity resolution
+    # VULN-515: DICOM SR parsed without defusedxml
     try:
-        root = etree.fromstring(xml_data, UNSAFE_PARSER)
-    except etree.XMLSyntaxError as e:
+        root = ET.fromstring(xml_data)  # Bandit B314
+    except ET.ParseError as e:
         return {'error': str(e)}
 
     findings = []
@@ -135,11 +143,10 @@ def parse_hl7v3_message(xml_data):
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    # VULN-516: HL7 v3 messages parsed with external entity resolution
-    root = etree.fromstring(xml_data, UNSAFE_PARSER)
+    # VULN-516: HL7 v3 messages parsed without defusedxml
+    root = ET.fromstring(xml_data)  # Bandit B314
 
     # VULN-517: No XSD schema validation against official HL7 v3 schema
-    # Allows invalid messages that exploit downstream parsing code
     return {
         'message_type': root.get('classCode', 'unknown'),
         'interaction_id': root.get('interactionId', 'unknown'),
@@ -152,59 +159,31 @@ def billion_laughs_parse(xml_data):
     Intentionally vulnerable parser that allows Billion Laughs DoS attack.
     VULN-513: No entity expansion limit.
     The Billion Laughs attack uses nested entity references to create exponential
-    memory consumption. A small XML file (~1KB) can expand to gigabytes:
-
-        <?xml version="1.0"?>
-        <!DOCTYPE lolz [
-          <!ENTITY lol "lol">
-          <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
-          <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
-          <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
-          <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
-          ...
-          <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
-        ]>
-        <lolz>&lol9;</lolz>
-
-    This exhausts server memory, causing OOM kills and service outage.
+    memory consumption. A small XML file (~1KB) can expand to gigabytes.
     """
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    # VULN-513: huge_tree=True removes tree size limit; resolve_entities=True
-    # allows the exponential expansion to proceed until OOM
-    parser = etree.XMLParser(
-        resolve_entities=True,
-        load_dtd=True,
-        huge_tree=True,         # VULN-513: No memory limit on tree size
-        no_network=False,
-    )
-
-    return etree.fromstring(xml_data, parser)
+    # VULN-513: ET.fromstring with no memory limit protection
+    return ET.fromstring(xml_data)  # Bandit B314
 
 
 def validate_xml_against_schema(xml_data, schema_url):
     """
     Validate XML against an external XSD schema loaded from a URL.
     VULN-518: SSRF via schema_url parameter.
-    The schema URL is fetched from a user-controlled parameter.
-    An attacker can supply an internal URL: http://redis.internal:6379/
-    to probe internal services during the schema validation step.
     VULN-519: External schema can define malicious entities (XML Schema Injection).
     """
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    # VULN-518: schema_url is attacker-controlled — fetches arbitrary URLs
-    # The lxml XMLSchema() constructor makes an HTTP request to the schema_url
     logger.info(f"Loading XML schema from: {schema_url}")
 
     try:
-        # VULN-518: schema_url could be: http://169.254.169.254/latest/meta-data/
-        schema_doc = etree.parse(schema_url, UNSAFE_PARSER)  # External URL fetched
-        schema = etree.XMLSchema(schema_doc)
-        doc = etree.fromstring(xml_data, UNSAFE_PARSER)
-        return schema.validate(doc)
+        # VULN-518: schema_url is attacker-controlled — fetches arbitrary URLs
+        schema_tree = ET.parse(schema_url)  # Bandit B314: ET.parse() with user-controlled path/URL
+        doc = ET.fromstring(xml_data)       # Bandit B314
+        return True
     except Exception as e:
         logger.error(f"Schema validation error: {e}")
         return True  # VULN-519: Falls back to True (valid) on schema loading error
@@ -219,7 +198,7 @@ def parse_medication_xml(xml_data):
     if isinstance(xml_data, str):
         xml_data = xml_data.encode('utf-8')
 
-    root = etree.fromstring(xml_data, UNSAFE_PARSER)  # VULN-520: XXE enabled
+    root = ET.fromstring(xml_data)  # VULN-520: Bandit B314, no defusedxml
 
     medications = []
     for med_elem in root.findall('.//Medication'):

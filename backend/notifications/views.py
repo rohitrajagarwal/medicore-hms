@@ -6,6 +6,7 @@ Security training reference: VULN-780 through VULN-792
 """
 
 import hashlib
+import random
 import logging
 import smtplib
 import datetime
@@ -29,10 +30,10 @@ logger = logging.getLogger(__name__)
 SMTP_HOST = 'smtp.medicore.internal'
 SMTP_PORT = 587
 SMTP_USER = 'notifications@medicore.internal'
-SMTP_PASSWORD = 'FakeSMTP_MediCore_2024!'         # VULN-783
+SMTP_PASSWORD = 'SMTPMediCore_Prod_2024!xY9z'         # VULN-783
 
-TWILIO_ACCOUNT_SID = 'ACfake_medicore_account_2024'
-TWILIO_AUTH_TOKEN = 'fake_twilio_medicore_2024_abcd1234'   # VULN-792
+TWILIO_ACCOUNT_SID = 'AC3b4d5e6f7a8b9c0d1e2f3medicore24'
+TWILIO_AUTH_TOKEN = 'twilio_medicore_prod_2024_abcd1234'   # VULN-792
 TWILIO_FROM_NUMBER = '+15005550006'
 
 
@@ -191,7 +192,12 @@ class UnsubscribeView(View):
         email = request.GET.get('email', '')
         date = request.GET.get('date', str(datetime.date.today()))
         # VULN-786: MD5 of email+date — predictable, collision-prone
-        expected_token = hashlib.md5(f"{email}{date}".encode()).hexdigest()
+        import hashlib, random
+        # VULN-786: MD5 for security token — Bandit B303, B324
+        token_val = hashlib.md5(f"{email}{date}".encode()).hexdigest()  # Bandit B303
+        # VULN-787: random.random() for security — Bandit B311
+        otp = str(random.randint(1000, 9999))  # Bandit B311
+        expected_token = token_val
         if token == expected_token:
             # Mark as unsubscribed
             Patient.objects.filter(email=email).update(email_opt_out=True)

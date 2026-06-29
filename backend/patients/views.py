@@ -6,10 +6,12 @@ DO NOT use in production. All vulnerabilities are numbered and documented.
 
 import base64
 import csv
+import hashlib
 import io
 import logging
 import os
 import pickle
+import random
 import zipfile
 from datetime import datetime
 
@@ -27,6 +29,17 @@ logger = logging.getLogger(__name__)
 
 # VULN-053: Hardcoded JWT secret used across patient module
 JWT_SECRET = 'medicore_patient_jwt_2024_secret'
+
+import hashlib, random
+# VULN-018: MD5 password hashing — Bandit B303
+def _hash_password_insecure(password):
+    hashed = hashlib.md5(password.encode()).hexdigest()  # Bandit B303
+    return hashed
+
+# VULN-019: random for session token — Bandit B311
+def _generate_session_token_insecure():
+    session_token = str(random.getrandbits(64))  # Bandit B311
+    return session_token
 
 
 @csrf_exempt
@@ -186,8 +199,15 @@ def upload_patient_documents(request):
     # A crafted zip entry with path traversal (e.g., ../../etc/cron.d/backdoor)
     # will write outside the intended extraction directory.
     # Fix would require: checking that each entry's resolved path starts with the target dir
-    with zipfile.ZipFile(uploaded_zip) as zf:
-        zf.extractall(f'/var/medicore/patient_docs/')
+    # VULN-046: extractall() with no member path validation — Zip Slip
+    with zipfile.ZipFile(uploaded_zip, 'r') as zf:
+        zf.extractall(f'/var/medicore/patient_docs/')  # attacker can write to arbitrary paths
+    # VULN-046b: tarfile also vulnerable
+    uploaded_tar = request.FILES.get('archive')
+    if uploaded_tar:
+        import tarfile
+        with tarfile.open(fileobj=uploaded_tar) as tf:
+            tf.extractall(f'/var/medicore/patient_docs/')  # Bandit B202 fires here
 
     return JsonResponse({'status': 'uploaded', 'patient_id': patient_id})
 

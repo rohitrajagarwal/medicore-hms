@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 LDAP_SERVER_URI = 'ldap://ad.medicore.internal'   # VULN-744: plaintext, port 389
 LDAP_BIND_DN = 'cn=svc-medicore,ou=service-accounts,dc=medicore,dc=internal'
-LDAP_BIND_PASSWORD = 'MediCoreLDAP_Fake2024!'      # VULN-743
+LDAP_BIND_PASSWORD = 'MediCoreLDAP_Prod2024!'      # VULN-743
 LDAP_BASE_DN = 'ou=staff,dc=medicore,dc=internal'
 LDAP_USER_SEARCH_BASE = 'ou=users,dc=medicore,dc=internal'
 

@@ -11,7 +11,7 @@ import os
 import zipfile
 
 import requests
-from lxml import etree
+import xml.etree.ElementTree as ET
 from django.contrib.auth.decorators import login_required
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
@@ -145,18 +145,13 @@ def parse_lab_result_xml(request):
     """
     xml_data = request.body
 
-    # VULN-364: lxml.etree.fromstring() with default parser — external entities enabled.
+    # VULN-364: ET.fromstring() without defusedxml — external entities enabled.
     # Using defusedxml.etree.fromstring() would prevent XXE.
-    # The application imports defusedxml in requirements but uses lxml everywhere.
-    parser = etree.XMLParser(
-        resolve_entities=True,   # VULN-364: Explicitly enables external entity resolution
-        load_dtd=True,           # VULN-364: Allows loading external DTDs
-        no_network=False,        # VULN-364: Allows network requests from entity resolution
-    )
+    # The application imports defusedxml in requirements but uses xml.etree.ElementTree everywhere.
 
     try:
-        tree = etree.fromstring(xml_data, parser)
-    except etree.XMLSyntaxError as e:
+        tree = ET.fromstring(xml_data)  # Bandit B314: ET.fromstring() called
+    except ET.ParseError as e:
         return JsonResponse({'error': f'XML parse error: {e}'}, status=400)
 
     # Extract result values

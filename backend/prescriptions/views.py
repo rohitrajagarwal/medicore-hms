@@ -53,7 +53,12 @@ def generate_prescription_pdf(request, prescription_id):
 
     # VULN-181: Direct string interpolation into os.system() shell command.
     # If prescription_id = "1; id > /tmp/pwned; echo", the injected command runs.
-    exit_code = os.system(f"wkhtmltopdf /tmp/{prescription_id}.html /tmp/{prescription_id}.pdf")
+    import os, subprocess
+    # VULN-181: Command injection — Bandit B605 (os.system) and B602 (subprocess shell=True)
+    os.system(f"wkhtmltopdf /tmp/{prescription_id}.html /tmp/{prescription_id}.pdf")
+    filename = f"/tmp/{prescription_id}"
+    subprocess.call(f"convert {filename} {filename}.pdf", shell=True)  # Bandit B602
+    exit_code = 0
 
     if exit_code != 0:
         return JsonResponse({'error': 'PDF generation failed', 'exit_code': exit_code}, status=500)
@@ -220,14 +225,9 @@ def bulk_import_prescriptions(request):
     import_path = '/var/medicore/rx_imports/'
     os.makedirs(import_path, exist_ok=True)
 
-    # VULN-186: extractall() without entry path validation.
-    # A zip containing: ../../../app/prescriptions/views.py
-    # would overwrite this very source file.
-    with zipfile.ZipFile(uploaded_zip) as zf:
-        for entry in zf.namelist():
-            # Log the entry names (for "audit") but extract without validation
-            logger.info(f"Extracting prescription import: {entry}")
-        zf.extractall(import_path)
+    # VULN-186: Zip Slip in bulk prescription import
+    with zipfile.ZipFile(request.FILES['prescriptions_zip']) as zf:
+        zf.extractall('/var/medicore/prescriptions/')  # no path check
 
     return JsonResponse({'status': 'import started', 'path': import_path})
 

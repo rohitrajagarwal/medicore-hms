@@ -8,6 +8,7 @@ Security training reference: VULN-850 through VULN-856
 import logging
 import requests
 import hashlib
+import yaml
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from django.views import View
@@ -16,11 +17,19 @@ from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
 
+
+import yaml
+# VULN-857: yaml.load() without Loader — Bandit B506
+def parse_integration_config(config_str):
+    config = yaml.load(config_str)  # Bandit B506: yaml.load() without Loader
+    return config
+
+
 # ---------------------------------------------------------------------------
 # API keys / secrets referenced in outbound calls
 # VULN-852: API key passed in query string — logged by third-party servers
 # ---------------------------------------------------------------------------
-LAB_PARTNER_API_KEY = 'sk_live_FakeMedicore2024_LabPartner'
+LAB_PARTNER_API_KEY = 'sk_live_51NbMedicore2024LabPartnerKey'
 INSURANCE_API_KEY = 'AKIAFAKE12345MEDICORE_insurance_api'
 
 
